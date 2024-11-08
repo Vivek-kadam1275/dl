@@ -1,0 +1,99 @@
+#import packages:
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import matplotlib.pyplot as plt
+
+
+# load and split data
+train_loc="cifar-10-img/train"
+test_loc="cifar-10-img/test"
+
+
+
+train_batch_size=20000
+test_batch_size=2000
+
+image_data_generator=ImageDataGenerator(rescale=(1.0/255))
+
+
+train_generator=image_data_generator.flow_from_directory(
+    train_loc,
+    batch_size=train_batch_size,
+    target_size=(32,32),
+    class_mode='categorical',
+    color_mode='grayscale',
+    shuffle=True
+)
+
+
+test_generator=image_data_generator.flow_from_directory(
+    test_loc,
+    batch_size=test_batch_size,
+    target_size=(32,32),
+    class_mode='categorical',
+    color_mode='grayscale',
+    shuffle=True,        
+)
+
+
+(x_train,y_train)=train_generator[0]
+(x_test,y_test)=test_generator[0]
+
+
+print(f"x_train shape is {x_train.shape}")
+
+print(f"y_train shape is {y_train.shape}")
+
+print(f"x_test shape is {x_test.shape}")
+print(f"y_test shape is {y_test.shape}")
+
+
+num_classes = 10
+class_names = ['airplane','automobile','bird','cat','deer',
+               'dog','frog','horse','ship','truck']
+
+#define architecture
+from tensorflow.keras.layers import Input
+model=keras.Sequential([
+    Input(shape=(32,32)),
+    keras.layers.Flatten(),
+    keras.layers.Dense(50,activation="relu",name="l1"),
+    keras.layers.Dense(10,activation="softmax",name="l2")
+])
+
+
+model.compile(optimizer="sgd",loss="categorical_crossentropy",metrics=["accuracy"])
+history=model.fit(x_train,y_train,epochs=10,validation_data=(x_test,y_test),batch_size=10,shuffle=True)
+
+
+#evaluate model
+loss,accuracy=model.evaluate(x_test,y_test)
+print(loss)
+print(accuracy)
+
+
+
+# plot accuracy
+
+plt.plot(history.history["accuracy"])
+plt.plot(history.history["val_accuracy"])
+plt.xlabel("epochs")
+plt.ylabel("accuracy")
+plt.title("model accuracy")
+plt.legend(["Train","Validation"],loc="upper left")
+
+
+plt.plot(history.history["loss"])
+plt.plot(history.history["val_loss"])
+plt.xlabel("epochs")
+plt.ylabel("loss")
+plt.title("Model Loss")
+plt.legend(["Train","Validation"],loc="upper right")
+
+import numpy as np
+predicted_value=model.predict(x_test)
+plt.imshow(x_test[16])
+plt.show()
+print(class_names[np.argmax(predicted_value[16],axis=0)])
+# print(predicted_value[16])
