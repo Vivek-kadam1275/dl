@@ -1,0 +1,85 @@
+import tensorflow as tf
+import pandas as pd
+import numpy as np
+
+df=pd.read_csv('ecg.csv',header=None)
+df
+
+x=df.drop(140,axis=1)
+
+y=df[140]
+
+# Preprocess the data
+from sklearn.preprocessing import StandardScaler
+StandardScaler=StandardScaler()
+x=StandardScaler.fit_transform(x)
+x
+
+
+from sklearn.model_selection import train_test_split
+x_train,x_test, y_train , y_test = train_test_split(x, y, test_size=0.2)
+
+from tensorflow import keras
+encoder = keras.Sequential([
+    keras.layers.Input(shape=(x_train.shape[1],)),
+    keras.layers.Dense(64, activation='relu'),
+    keras.layers.Dense(64, activation='relu'),
+    keras.layers.Dense(20, activation='relu')
+])
+       
+decoder = tf.keras.models.Sequential([
+    keras.layers.Input(shape=(20,)),
+    keras.layers.Dense(64, activation='relu'),
+    keras.layers.Dense(64, activation='relu'),
+    keras.layers.Dense(x_train.shape[1], activation='linear')  # Use linear activation for reconstruction
+])
+       
+model = keras.Sequential([
+    encoder,
+    decoder
+])
+
+model.compile(optimizer='adam', loss ='mean_squared_error')
+
+
+history = model.fit(
+    x_train,
+    x_train,
+    validation_data=(x_test,x_test),
+    epochs=5,
+    batch_size = 100,
+    shuffle=True
+)
+
+import seaborn as sns
+sns.lineplot(model.history.history)
+
+predictions = model.predict(x_test)
+mse = np.mean(np.power(x_test - predictions, 2), axis=1)
+
+threshold = np.percentile(mse, 95)  # Adjust the percentile as needed
+threshold
+
+anomalies = mse > threshold
+
+# Calculate the number of anomalies
+num_anomalies = np.sum(anomalies)
+print(f"Number of Anomalies: {num_anomalies}")
+
+from sklearn.metrics import confusion_matrix, classification_report
+import matplotlib.pyplot as plt
+plt.figure(figsize = (6, 4.75))
+sns.heatmap(confusion_matrix(y_test, anomalies), annot = True, annot_kws = {"size": 16}, fmt = 'd')
+
+plt.xlabel("Predicted label", fontsize = 14)
+plt.ylabel("True label", fontsize = 14)
+plt.title("Confusion Matrix", fontsize = 14)
+plt.grid(False)
+plt.show()
+
+# Evaluate the model
+print("Confusion Matrix:")
+print(confusion_matrix(y_test, anomalies))
+
+print("\nClassification Report:")
+print(classification_report(y_test, anomalies))
