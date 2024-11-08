@@ -87,3 +87,11 @@ plt.xlabel("epochs")
 plt.ylabel("loss")
 plt.title("Model Loss")
 plt.legend(["Train","Validation"],loc="upper right")
+
+
+import numpy as np
+predicted_value=model.predict(x_test)
+plt.imshow(x_test[16])
+plt.show()
+print(np.argmax(predicted_value[16],axis=0))
+# print(predicted_value[16])
